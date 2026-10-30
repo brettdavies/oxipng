@@ -13,6 +13,12 @@ pub fn reduced_bit_depth_16_to_8(png: &PngImage, force_scale: bool) -> Option<Pn
         return None;
     }
 
+    // Scaling a transparency value that no pixel uses could map it onto one that is used,
+    // so the lossless check is only skipped when there is none
+    if force_scale && !png.ihdr.color_type.has_trns() {
+        return scaled_bit_depth_16_to_8(png);
+    }
+
     // Reduce from 16 to 8 bits per channel per pixel
     if png
         .data
