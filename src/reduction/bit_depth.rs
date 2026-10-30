@@ -71,12 +71,12 @@ pub fn scaled_bit_depth_16_to_8(png: &PngImage) -> Option<PngImage> {
         .as_chunks::<2>()
         .0
         .iter()
-        .map(|pair| scaled_16_to_8(u16::from_be_bytes(*pair)))
+        .map(|&pair| scaled_16_to_8(pair))
         .collect();
 
     // Scale the transparency the same way so every pixel that matched it still does
     let color_type = reduced_trns_16_to_8(&png.ihdr.color_type, |trns| {
-        Some(u16::from(scaled_16_to_8(trns)))
+        Some(u16::from(scaled_16_to_8(trns.to_be_bytes())))
     });
 
     Some(PngImage {
@@ -90,14 +90,14 @@ pub fn scaled_bit_depth_16_to_8(png: &PngImage) -> Option<PngImage> {
 }
 
 /// Scale a 16-bit sample to 8-bit
-fn scaled_16_to_8(val: u16) -> u8 {
-    let [high, low] = val.to_be_bytes();
+fn scaled_16_to_8([high, low]: [u8; 2]) -> u8 {
     if high == low {
         return high;
     }
     // See: http://www.libpng.org/pub/png/spec/1.2/PNG-Decoders.html#D.Sample-depth-rescaling
     // This allows values such as 0x00FF to be rounded to 0x01 rather than truncated to 0x00
-    (f32::from(val) * (255.0 / 65535.0)).round() as u8
+    let val = f32::from(u16::from_be_bytes([high, low]));
+    (val * (255.0 / 65535.0)).round() as u8
 }
 
 /// Reduce the transparency of a 16-bit color type to 8-bit, removing it if any channel can't be reduced
