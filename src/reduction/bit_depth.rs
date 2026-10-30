@@ -39,7 +39,11 @@ pub fn reduced_bit_depth_16_to_8(png: &PngImage, force_scale: bool) -> Option<Pn
     // is unused - set it to None
     let color_type = reduced_trns_16_to_8(&png.ihdr.color_type, |trns| {
         let [high, low] = trns.to_be_bytes();
-        (high == low).then_some(u16::from(low))
+        if high == low {
+            Some(u16::from(low))
+        } else {
+            None
+        }
     });
 
     Some(PngImage {
